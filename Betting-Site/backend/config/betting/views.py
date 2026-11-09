@@ -34,7 +34,6 @@ def me(request):
     wallet, _ = Wallet.objects.get_or_create(user=request.user)
     return Response({"username": request.user.username, "balance": wallet.balance})
 
-
 class PlaceBetView(APIView):
     permission_classes = [IsAuthenticated]
 
