@@ -20,7 +20,9 @@ def place_bet(user, event_id, pick, stake):
     wallet = Wallet.objects.select_for_update().get(user=user)
     if wallet.balance < stake:
         raise BetError("Insufficient balance.")
-
+    if event.status == Event.Status.FINISHED:
+        raise BetError("event already settled.")
+    
     wallet.balance -= stake
     wallet.save()
     return Bet.objects.create(
