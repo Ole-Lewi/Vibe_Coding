@@ -1,7 +1,7 @@
 from decimal import Decimal
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import Bet, Event
+from .models import Bet, Event, Transaction
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -34,3 +34,8 @@ class PlaceBetSerializer(serializers.Serializer):
     event_id = serializers.IntegerField()
     pick = serializers.ChoiceField(choices=Event.Outcome.choices)
     stake = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal("1"))
+
+class TransactionSerializer(serializers.Serializer):
+    class Meta:
+        model = Transaction
+        fields = ["id", "kind", "amount", "balance_after", "note", "created_at"]

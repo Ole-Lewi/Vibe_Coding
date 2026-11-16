@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.utils import timezone
 
-from .models import Bet, Event
+from .models import Bet, Event, Wallet, Transaction
 from .services import BetError, place_bet, settle_event
 
 
@@ -74,3 +74,11 @@ class BettingEngineTests(TestCase):
         with self.assertRaises(BetError):
             settle_event(self.event.id, "AWAY")
         self.assertEqual(self.balance(), Decimal("1110.00"))
+
+    def test_ledger_matches_wallet_balance(self):
+        place_bet(self.user, self.event.id, "HOME", "100")
+        settle_event(self.event.id, "HOME")
+        self.user.wallet.refresh_from_db()
+        transactions = self.user.transaction_set.all()
+        total = sum(t.amount for t in transactions)
+        self.assertEqual(total, self.balance())

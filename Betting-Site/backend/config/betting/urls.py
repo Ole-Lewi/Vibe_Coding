@@ -10,4 +10,5 @@ urlpatterns = [
     path("events/", views.EventListView.as_view()),
     path("bets/", views.MyBetsView.as_view()),
     path("bets/place/", views.PlaceBetView.as_view()),
+    path("transactions/", views.TransactionListView.as_view()),
 ]

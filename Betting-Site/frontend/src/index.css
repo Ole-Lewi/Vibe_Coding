@@ -35,3 +35,6 @@ nav { display:flex; gap:8px; margin-bottom:12px; }
 .status.lost { color:#f87171; border-color:#f87171; }
 .status.pending { color:#fbbf24; border-color:#fbbf24; }
 .muted { color:var(--muted); } .error { color:#f87171; margin:0; }
+.amt { font-weight: 600; }
+.amt.pos { color: var(--accent); }
+.amt.neg { color: #f87171; }

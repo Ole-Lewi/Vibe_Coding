@@ -8,9 +8,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Bet, Event, Wallet
-from .serializers import (BetSerializer, EventSerializer,
-                          PlaceBetSerializer, RegisterSerializer)
+from .models import Bet, Event, Wallet, Transaction
+from .serializers import BetSerializer, EventSerializer, PlaceBetSerializer, RegisterSerializer, TransactionSerializer
 from .services import BetError, place_bet
 
 
@@ -54,3 +53,10 @@ class MyBetsView(generics.ListAPIView):
 
     def get_queryset(self):
         return Bet.objects.filter(user=self.request.user).select_related("event").order_by("-created_at")
+
+class TransactionListView(generics.ListAPIView):
+    serializer_class = TransactionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Transaction.objects.filter(user=self.request.user)[:100]

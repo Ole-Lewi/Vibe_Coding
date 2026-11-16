@@ -4,6 +4,8 @@ import AuthForm from "./AuthForm";
 import EventCard from "./EventCard";
 import BetSlip from "./BetSlip";
 import MyBets from "./MyBets";
+import History from "./History";
+
 
 export default function App() {
   const [me, setMe] = useState(null);
@@ -12,6 +14,7 @@ export default function App() {
   const [slip, setSlip] = useState(null);
   const [tab, setTab] = useState("events");
   const [error, setError] = useState("");
+  const [txs, setTxs] = useState([]);
 
   const logout = useCallback(() => {
     localStorage.clear();
@@ -19,12 +22,14 @@ export default function App() {
     setBets([]);
     setSlip(null);
     setTab("events");
+    setTxs([]);
   }, []);
 
   const loadAccount = useCallback(async () => {
     try {
       setMe(await api("/me/"));
       setBets(await api("/bets/"));
+      setTxs(await api("/transactions/"));
     } catch {
       logout();
     }
@@ -68,6 +73,7 @@ export default function App() {
             <nav>
               <button className={tab === "events" ? "tab active" : "tab"} onClick={() => setTab("events")}>Events</button>
               <button className={tab === "bets" ? "tab active" : "tab"} onClick={() => setTab("bets")}>My bets ({bets.length})</button>
+              <button className={tab === "history" ? "tab active" : "tab"} onClick={() => setTab("history")}>History</button>
             </nav>
           )}
           {tab === "events" ? (
@@ -77,7 +83,11 @@ export default function App() {
               <p className="muted">No upcoming events.</p>
             )
           ) : (
-            <MyBets bets={bets} />
+            tab === "bets" ? (
+              <MyBets bets={bets} />
+            ) : (
+              <History txs={txs} />
+            )
           )}
         </main>
 
