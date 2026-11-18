@@ -6,48 +6,59 @@ import BetSlip from "./BetSlip";
 import MyBets from "./MyBets";
 import History from "./History";
 
+const asList = (d) => (Array.isArray(d) ? d : []);
 
 export default function App() {
   const [me, setMe] = useState(null);
   const [events, setEvents] = useState([]);
   const [bets, setBets] = useState([]);
-  const [slip, setSlip] = useState(null);
+  const [txs, setTxs] = useState([]);
+  const [slip, setSlip] = useState([]);
   const [tab, setTab] = useState("events");
   const [error, setError] = useState("");
-  const [txs, setTxs] = useState([]);
 
   const logout = useCallback(() => {
     localStorage.clear();
     setMe(null);
     setBets([]);
-    setSlip(null);
-    setTab("events");
     setTxs([]);
+    setSlip([]);
+    setTab("events");
   }, []);
 
   const loadAccount = useCallback(async () => {
     try {
       setMe(await api("/me/"));
-      setBets(await api("/bets/"));
-      setTxs(await api("/transactions/"));
+      setBets(asList(await api("/bets/")));
+      setTxs(asList(await api("/transactions/")));
     } catch {
       logout();
     }
   }, [logout]);
 
   useEffect(() => {
-    api("/events/", { auth: false }).then(setEvents).catch((e) => setError(e.message));
+    api("/events/", { auth: false })
+      .then((d) => setEvents(asList(d)))
+      .catch((e) => setError(e.message));
     if (localStorage.getItem("access")) loadAccount();
   }, [loadAccount]);
 
   function pick(event, p) {
     if (!me) return setError("Log in to place a bet.");
     setError("");
-    setSlip({ event, pick: p });
+    setSlip((prev) => {
+      const existing = prev.find((s) => s.event.id === event.id);
+      if (existing && existing.pick === p) return prev.filter((s) => s.event.id !== event.id);
+      if (existing) return prev.map((s) => (s.event.id === event.id ? { event, pick: p } : s));
+      if (prev.length >= 10) return prev;
+      return [...prev, { event, pick: p }];
+    });
   }
 
+  const removeLeg = (id) => setSlip((prev) => prev.filter((s) => s.event.id !== id));
+
   function onPlaced() {
-    setSlip(null);
+    setSlip([]);
     loadAccount();
     setTab("bets");
   }
@@ -82,18 +93,16 @@ export default function App() {
             ) : (
               <p className="muted">No upcoming events.</p>
             )
+          ) : tab === "bets" ? (
+            <MyBets bets={bets} />
           ) : (
-            tab === "bets" ? (
-              <MyBets bets={bets} />
-            ) : (
-              <History txs={txs} />
-            )
+            <History txs={txs} />
           )}
         </main>
 
         <aside>
           {me ? (
-            <BetSlip slip={slip} onClear={() => setSlip(null)} onPlaced={onPlaced} />
+            <BetSlip slip={slip} onRemove={removeLeg} onClear={() => setSlip([])} onPlaced={onPlaced} />
           ) : (
             <AuthForm onAuth={loadAccount} />
           )}

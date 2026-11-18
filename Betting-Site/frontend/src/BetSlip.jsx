@@ -3,24 +3,27 @@ import { api } from "./api";
 
 const KEY = { HOME: "home_odds", DRAW: "draw_odds", AWAY: "away_odds" };
 
-export default function BetSlip({ slip, onClear, onPlaced }) {
+const label = (s) =>
+  s.pick === "DRAW" ? "Draw" : s.pick === "HOME" ? s.event.home_team : s.event.away_team;
+
+export default function BetSlip({ slip, onRemove, onClear, onPlaced }) {
   const [stake, setStake] = useState("100");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  if (!slip) {
+  if (!slip.length) {
     return (
       <div className="card">
         <h3>Bet slip</h3>
-        <p className="muted">Tap an odd to add a selection.</p>
+        <p className="muted">Tap odds on one or more matches to build your bet.</p>
       </div>
     );
   }
 
-  const odds = Number(slip.event[KEY[slip.pick]]);
-  const payout = (Number(stake || 0) * odds).toFixed(2);
-  const label = slip.pick === "DRAW" ? "Draw"
-    : slip.pick === "HOME" ? slip.event.home_team : slip.event.away_team;
+  const combined = Number(
+    slip.reduce((acc, s) => acc * Number(s.event[KEY[s.pick]]), 1).toFixed(2)
+  );
+  const payout = (Number(stake || 0) * combined).toFixed(2);
 
   async function place() {
     setError("");
@@ -28,7 +31,10 @@ export default function BetSlip({ slip, onClear, onPlaced }) {
     try {
       await api("/bets/place/", {
         method: "POST",
-        body: { event_id: slip.event.id, pick: slip.pick, stake },
+        body: {
+          selections: slip.map((s) => ({ event_id: s.event.id, pick: s.pick })),
+          stake,
+        },
       });
       onPlaced();
     } catch (err) {
@@ -40,9 +46,19 @@ export default function BetSlip({ slip, onClear, onPlaced }) {
 
   return (
     <div className="card">
-      <h3>Bet slip</h3>
-      <div className="teams">{slip.event.home_team} vs {slip.event.away_team}</div>
-      <p>Pick: <strong>{label}</strong> @ {odds.toFixed(2)}</p>
+      <h3>{slip.length > 1 ? `Accumulator (${slip.length})` : "Bet slip"}</h3>
+      {slip.map((s) => (
+        <div className="sel" key={s.event.id}>
+          <div>
+            <div className="teams">{s.event.home_team} vs {s.event.away_team}</div>
+            <small className="muted">
+              {label(s)} @ {Number(s.event[KEY[s.pick]]).toFixed(2)}
+            </small>
+          </div>
+          <button className="x" onClick={() => onRemove(s.event.id)}>×</button>
+        </div>
+      ))}
+      <p>Total odds: <strong>{combined.toFixed(2)}</strong></p>
       <label className="muted">Stake</label>
       <input type="number" min="1" value={stake} onChange={(e) => setStake(e.target.value)} />
       <p>Potential return: <strong>{payout}</strong></p>
@@ -50,7 +66,7 @@ export default function BetSlip({ slip, onClear, onPlaced }) {
       <button className="primary" onClick={place} disabled={loading || !stake}>
         {loading ? "Placing..." : "Place bet"}
       </button>
-      <button className="link" onClick={onClear}>Clear</button>
+      <button className="link" onClick={onClear}>Clear all</button>
     </div>
   );
 }
